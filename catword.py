@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import sys, os, struct, re
-import olefile, hexdump
+import olefile
 from zipfile import is_zipfile, ZipFile
 
 def parse_docx(file_name):
@@ -37,20 +37,8 @@ def parse_doc(file_name):
             T = stream.read()
 
     textinfo_off = struct.unpack("<H", W[0x01a2:0x01a4])[0]
-    # print(hex(textinfo_off))
-
-    # hexdump.hexdump(T[textinfo_off:textinfo_off+0x30])
-    # T[0x2997:] = 
-    # findtext.c[233]:
-    # 000: 02 1c 00 00 00 00 00 00 00 00 01 00 00 b5 01 00 
-    # 010: 00 10 01 00 08 00 00 00 00 10 01 00 0e 00 00 00 
-    # 020: 00 
-
     ulLen = struct.unpack("<I", T[textinfo_off+1:textinfo_off+5])[0]
     lPieces = int((ulLen-4)/12)
-    # print("ulLen: 0x%x" %(ulLen))
-    # print("lPieces: 0x%x" %(lPieces))
-
     off = textinfo_off+5
     res = ""
     for lIndex in range(0, lPieces):
@@ -59,27 +47,16 @@ def parse_doc(file_name):
         i = off+(lIndex+1)*4
         j = off+lIndex*4
         text_len = struct.unpack("<I", T[i:i+4])[0] - struct.unpack("<I", T[j:j+4])[0]
-        # text_len = text_len*2
-        # print("text_off: 0x%x, text_len: 0x%x" %(text_off, text_len))
         data = W[text_off:text_len*2+text_off]
-        # hexdump.hexdump(data)
-
-        # for i in range(0, len(data), 2):
-        #     print("data:%s" %(data[i:i+2].decode("utf16")))
-        #     print(data[i:i+2])
-        # print("data:\n%s" %(data[:].decode("utf16").replace("\r", "\r\n")))
-        res += data[:].decode("utf16").replace("\r", "\r\n")
+        res += data[:].decode("utf16").replace("\r", "\r\n").replace("\x07\x07\x07", "\n").replace("\x07", "\t") #.replace("\x0b", " ")
     return res
 
 
 if __name__ == "__main__":
     file_name = sys.argv[1]
-    # print("file_name", file_name)
     if olefile.isOleFile(file_name):
         res = parse_doc(file_name)
         print(res)
     else:
-        print("zip")
         res = parse_docx(file_name)
-        # print(res, type(res), res.decode('utf8'))
         print(res)
