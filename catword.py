@@ -2,7 +2,7 @@
 import sys, os, struct, re
 import olefile
 from zipfile import is_zipfile, ZipFile
-
+DEBUG = int(os.environ.get("DEBUG", "0"))
 def parse_docx(file_name):
     zf = ZipFile(file_name)
     for sub_file in zf.namelist():
@@ -10,15 +10,17 @@ def parse_docx(file_name):
             with zf.open(sub_file) as file_handle:
                 content = file_handle.read()
                 content = content.decode("utf8")
-                print(content)
-                print("*"*20)
+                if DEBUG:
+                    print(content)
+                    print("*"*20)
                 if "</w:t>" in content:
                     # remove xml tags to fix fonts error
                     # content = content.replace('w:lineRule="auto"/>', \
                     #     "/><w:t>CRCR</w:t>")
                     # content = content.replace("<w:p", "<w:x")
                     content = content.replace("</w:p>", "</w:p><w:t>CRCR</w:t>")
-                    content = re.sub("</?w:[^>]*>", "", content) 
+                    content = content.replace("<w:tab/>", "<w:tab/><w:t>    </w:t>")
+                    content = re.sub("</?w:[^>]*>", "", content)
                     # content = content.split("\r\n")
                     content = content.replace("CRCR", "\n")
                     return content
